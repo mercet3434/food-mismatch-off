@@ -1,8 +1,9 @@
 import 'register_screen.dart';
+import 'home_screen.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+
     setState(() {
       isLoading = true;
     });
@@ -48,7 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-     
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     } on FirebaseAuthException catch (e) {
       String message = "Giriş başarısız";
 
@@ -65,11 +70,13 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Beklenmeyen hata: $e")),
       );
@@ -83,46 +90,51 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> resetPassword() async {
-  final email = emailController.text.trim();
+    final email = emailController.text.trim();
 
-  if (email.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Lütfen önce e-posta adresinizi girin"),
-      ),
-    );
-    return;
-  }
-
-  try {
-    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-      content: Text("Şifre sıfırlama linki gönderildi (Spam klasörünü kontrol edin)"),
-    ),
-);
-  } on FirebaseAuthException catch (e) {
-    String message = "Şifre sıfırlama başarısız";
-
-    if (e.code == 'invalid-email') {
-      message = "Geçersiz e-posta adresi";
-    } else if (e.code == 'user-not-found') {
-      message = "Bu e-posta ile kayıtlı kullanıcı bulunamadı";
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Lütfen önce e-posta adresinizi girin"),
+        ),
+      );
+      return;
     }
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Beklenmeyen hata: $e")),
-    );
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Şifre sıfırlama linki gönderildi (Spam klasörünü kontrol edin)",
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = "Şifre sıfırlama başarısız";
+
+      if (e.code == 'invalid-email') {
+        message = "Geçersiz e-posta adresi";
+      } else if (e.code == 'user-not-found') {
+        message = "Bu e-posta ile kayıtlı kullanıcı bulunamadı";
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Beklenmeyen hata: $e")),
+      );
+    }
   }
-}
 
   @override
   void dispose() {
@@ -169,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "NeYiyorum",
+                "",
                 style: GoogleFonts.nunito(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -186,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Icons.favorite_border,
                   color: Color(0xFFB85C74),
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 30),
@@ -212,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            "Gıda Ambalaj Analizi",
+            "GıdAI",
             textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
               fontSize: 30,
@@ -253,12 +265,12 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       child: Column(
         children: [
-        _buildInput(
-        controller: emailController,
-        hint: "E-posta",
-        icon: Icons.mail_outline_rounded,
-        keyboardType: TextInputType.emailAddress,
-        ),
+          _buildInput(
+            controller: emailController,
+            hint: "E-posta",
+            icon: Icons.mail_outline_rounded,
+            keyboardType: TextInputType.emailAddress,
+          ),
           const SizedBox(height: 16),
           _buildInput(
             controller: passwordController,
@@ -268,19 +280,19 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 10),
           Align(
-             alignment: Alignment.centerRight,
+            alignment: Alignment.centerRight,
             child: GestureDetector(
-            onTap: resetPassword,
-            child: Text(
-             "Şifremi unuttum",
-            style: GoogleFonts.nunito(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFFB85C74),
-           ),
-           ),
-           ),
-           ),
+              onTap: resetPassword,
+              child: Text(
+                "Şifremi unuttum",
+                style: GoogleFonts.nunito(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFB85C74),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 18),
           SizedBox(
             width: double.infinity,
@@ -351,10 +363,10 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 20),
           GestureDetector(
             onTap: () {
-            Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-            );
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+              );
             },
             child: RichText(
               text: TextSpan(
@@ -381,58 +393,61 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-Widget _buildInput({
-  required TextEditingController controller,
-  required String hint,
-  required IconData icon,
-  bool isPassword = false,
-  TextInputType keyboardType = TextInputType.text,
-}) {
-  return Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF2F5),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFE8D3D8)),
-    ),
-    child: TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: isPassword ? obscurePassword : false,
-      style: GoogleFonts.nunito(
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF5A3D44),
+  Widget _buildInput({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF2F5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE8D3D8)),
       ),
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(vertical: 20),
-        prefixIcon: Icon(icon, color: const Color(0xFFB85C74)),
-        hintText: hint,
-        hintStyle: GoogleFonts.nunito(
-          color: const Color(0xFFB4969D),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: isPassword ? obscurePassword : false,
+        style: GoogleFonts.nunito(
+          fontSize: 17,
           fontWeight: FontWeight.w700,
+          color: const Color(0xFF5A3D44),
         ),
-        suffixIcon: isPassword
-            ? IconButton(
-                onPressed: () {
-                  setState(() {
-                    obscurePassword = !obscurePassword;
-                  });
-                },
-                icon: Icon(
-                  obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: const Color(0xFFB85C74),
-                ),
-              )
-            : null,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 20),
+          prefixIcon: Icon(icon, color: const Color(0xFFB85C74)),
+          hintText: hint,
+          hintStyle: GoogleFonts.nunito(
+            color: const Color(0xFFB4969D),
+            fontWeight: FontWeight.w700,
+          ),
+          suffixIcon: isPassword
+              ? IconButton(
+                  onPressed: () {
+                    setState(() {
+                      obscurePassword = !obscurePassword;
+                    });
+                  },
+                  icon: Icon(
+                    obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: const Color(0xFFB85C74),
+                  ),
+                )
+              : null,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  Widget _socialButton({required String label, required IconData icon}) {
+  Widget _socialButton({
+    required String label,
+    required IconData icon,
+  }) {
     return Container(
       height: 52,
       decoration: BoxDecoration(
@@ -490,7 +505,7 @@ Widget _buildInput({
             color: Colors.pink.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Center(

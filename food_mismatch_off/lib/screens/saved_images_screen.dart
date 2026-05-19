@@ -1,8 +1,10 @@
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
+
 import '../services/saved_images_service.dart';
 import 'result_screen.dart';
+import 'visual_analysis_upload_screen.dart';
 
 class SavedImagesScreen extends StatefulWidget {
   const SavedImagesScreen({super.key});
@@ -12,267 +14,450 @@ class SavedImagesScreen extends StatefulWidget {
 }
 
 class _SavedImagesScreenState extends State<SavedImagesScreen> {
-  late Future<List<Map<String, dynamic>>> _future;
+  late Future<List<Map<String, dynamic>>> _savedFuture;
 
   @override
   void initState() {
     super.initState();
-    _future = SavedImagesService.getSavedItems();
+    _savedFuture = SavedImagesService.getSavedItems();
   }
 
-  Future<void> _refresh() async {
+  void _refreshSaved() {
     setState(() {
-      _future = SavedImagesService.getSavedItems();
+      _savedFuture = SavedImagesService.getSavedItems();
     });
   }
 
-  Future<void> _delete(String path) async {
-    await SavedImagesService.deleteSavedPath(path);
-    await _refresh();
+  Future<void> _startFirstAnalysis() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const VisualAnalysisUploadScreen(),
+      ),
+    );
+
+    if (!mounted) return;
+    _refreshSaved();
+  }
+
+  String _formatDate(String? iso) {
+    if (iso == null) return 'Tarih bilinmiyor';
+
+    final date = DateTime.tryParse(iso);
+    if (date == null) return 'Tarih bilinmiyor';
+
+    return '${date.day}.${date.month}.${date.year}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    const darkText = Color(0xFF2B2146);
+    const lilac = Color(0xFF8E73D8);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9DDE3),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFF9FB),
+              Color(0xFFF4EDFF),
+              Color(0xFFFFEEF7),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _savedFuture,
+            builder: (context, snapshot) {
+              final items = snapshot.data ?? [];
+
+              return Column(
                 children: [
-                  const Text(
-                    "Kayıtlarım",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF5A3D44),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _TopButton(
+                          icon: Icons.arrow_back_rounded,
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        _TopButton(
+                          icon: Icons.settings_rounded,
+                          onTap: () {},
+                        ),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.settings),
+
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(24, 34, 24, 28),
+                      children: [
+                        const Text(
+                          'Kayıtlarım',
+                          style: TextStyle(
+                            fontSize: 40,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: darkText,
+                            letterSpacing: -1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          '',
+                          style: TextStyle(
+                            fontSize: 20,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
+                            color: darkText.withValues(alpha: 0.55),
+                          ),
+                        ),
+                        const SizedBox(height: 42),
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 80),
+                              child: CircularProgressIndicator(
+                                color: lilac,
+                              ),
+                            ),
+                          )
+                        else if (items.isEmpty)
+                          _EmptySavedCard(
+                            onStartTap: _startFirstAnalysis,
+                          )
+                        else
+                          Column(
+                            children: items.map((item) {
+                              final imagePath =
+                                  item['frontImagePath'] ?? item['path'];
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _SavedItemCard(
+                                  title: item['productName'] ??
+                                      'Analiz Edilen Ürün',
+                                  date: _formatDate(item['createdAt']),
+                                  imagePath: imagePath,
+                                  onTap: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ResultScreen(
+                                          imagePath: imagePath,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (!mounted) return;
+                                    _refreshSaved();
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBFC),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.pink.shade100,
-                      child: const Icon(Icons.person, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        user?.email ?? "Bilinmiyor",
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, size: 16),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'Kayıtlar yüklenirken hata oluştu:\n${snapshot.error}',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final items = snapshot.data ?? [];
-
-                  if (items.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "Henüz kayıt yok",
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    );
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: _refresh,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: items.length,
-                      itemBuilder: (context, i) {
-                        final item = items[i];
-                        final file = File(item['path']);
-                        return _buildCard(context, item, file);
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildCard(
-    BuildContext context,
-    Map<String, dynamic> item,
-    File file,
-  ) {
-    final score = item['misleadingScore'];
-    final risk = item['healthRisk'] ?? "bilinmiyor";
-    final date = item['createdAt'] ?? "";
-    final name = item['productName'] ?? "Analiz Edilen Ürün";
+class _TopButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _TopButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8E73D8).withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: IconButton(
+        onPressed: onTap,
+        icon: Icon(
+          icon,
+          color: const Color(0xFF6F6287),
+          size: 28,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptySavedCard extends StatelessWidget {
+  final VoidCallback onStartTap;
+
+  const _EmptySavedCard({
+    required this.onStartTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const darkText = Color(0xFF2B2146);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 48, 24, 42),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(38),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8E73D8).withValues(alpha: 0.10),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 160,
+            height: 140,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(42),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFF7EFFF),
+                  Color(0xFFE7D8FF),
+                ],
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 92,
+                  height: 66,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCCBFF),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8E73D8)
+                            .withValues(alpha: 0.16),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.folder_rounded,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+                Positioned(
+                  top: 26,
+                  right: 34,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    size: 28,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 34),
+          const Text(
+            'Henüz kayıt yok',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: darkText,
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Yaptığın analizler burada\nlistelenecek.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: darkText.withValues(alpha: 0.52),
+              fontSize: 18,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 34),
+          GestureDetector(
+            onTap: onStartTap,
+            child: Container(
+              height: 58,
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFD7B6FF),
+                    Color(0xFF9B7BE8),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8E73D8).withValues(alpha: 0.28),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'İlk analizi başlat',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedItemCard extends StatelessWidget {
+  final String title;
+  final String date;
+  final String? imagePath;
+  final VoidCallback onTap;
+
+  const _SavedItemCard({
+    required this.title,
+    required this.date,
+    required this.imagePath,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final file = imagePath != null ? File(imagePath!) : null;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ResultScreen(imagePath: item['path']),
-          ),
-        );
-      },
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFBFC),
-          borderRadius: BorderRadius.circular(22),
+          color: Colors.white.withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8E73D8).withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: file.existsSync()
+              borderRadius: BorderRadius.circular(22),
+              child: file != null && file.existsSync()
                   ? Image.file(
                       file,
-                      width: 70,
-                      height: 70,
+                      width: 78,
+                      height: 78,
                       fit: BoxFit.cover,
                     )
                   : Container(
-                      width: 70,
-                      height: 70,
-                      color: Colors.grey.shade200,
+                      width: 78,
+                      height: 78,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFFEDE2FF),
+                            Color(0xFFF7EFFF),
+                          ],
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.image_rounded,
+                        color: Color(0xFF8E73D8),
+                        size: 38,
+                      ),
                     ),
             ),
-            const SizedBox(width: 12),
-
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF2B2146),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Analiz tarihi: ${_formatDate(date)}",
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 8),
-
-                  if (score != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E2D3),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        "Yanıltıcılık skoru: $score",
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-
                   const SizedBox(height: 6),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _riskColor(risk).withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      "Sağlık riski: ${risk.toUpperCase()}",
-                      style: TextStyle(
-                        color: _riskColor(risk),
-                        fontWeight: FontWeight.w700,
-                      ),
+                  Text(
+                    'Analiz tarihi: $date',
+                    style: TextStyle(
+                      color: const Color(0xFF2B2146).withValues(alpha: 0.52),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-
-            IconButton(
-              onPressed: () => _delete(item['path']),
-              icon: const Icon(Icons.delete_outline),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF8E73D8),
+              size: 30,
             ),
           ],
         ),
       ),
     );
-  }
-
-  String _formatDate(String? iso) {
-    if (iso == null) return "";
-    final d = DateTime.tryParse(iso);
-    if (d == null) return "";
-    return "${d.day}.${d.month}.${d.year}";
-  }
-
-  Color _riskColor(String risk) {
-    switch (risk.toLowerCase()) {
-      case 'düşük':
-        return Colors.green;
-      case 'orta':
-        return Colors.orange;
-      case 'yüksek':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 }

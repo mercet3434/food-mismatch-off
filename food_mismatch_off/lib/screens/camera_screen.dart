@@ -147,6 +147,45 @@ Navigator.pushReplacement(
           ? Stack(
               children: [
                 SizedBox.expand(child: CameraPreview(controller)),
+                Center(
+  child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Container(
+        width: 280,
+        height: 280,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: const Color(0xFF7CB68A),
+            width: 4,
+          ),
+          borderRadius: BorderRadius.circular(26),
+        ),
+      ),
+
+      const SizedBox(height: 18),
+
+      Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          'Ürünü çerçevenin içine yerleştir',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ],
+  ),
+),
 
                 if (_isLoading)
                   Container(
