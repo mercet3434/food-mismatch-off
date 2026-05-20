@@ -22,3 +22,4 @@ mobile/app/build/
 mobile/app/.dart_tool/
 mobile/app/.flutter-plugins
 mobile/app/.flutter-plugins-dependencies
+.vscode/
